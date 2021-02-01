@@ -5,7 +5,6 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import train_test_split
 
 import optuna
-from functools import partial
 
 class ModelOptimization:
     def __init__(self, x, y):
@@ -49,7 +48,7 @@ class ModelOptimization:
     
     def train_optimal_configuration(self, best_params):
 
-        # Classifier definition
+        # Classifier definition with optimal paramters
         model = RandomForestClassifier(n_estimators=best_params['n_estimators'],
                                     max_depth=best_params['max_depth'],
                                     criterion=best_params['criterion'])
