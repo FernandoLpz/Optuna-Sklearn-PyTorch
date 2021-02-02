@@ -9,6 +9,8 @@ verify_ssl = true
 optuna = "*"
 sklearn = "*"
 torch = "*"
+pandas = "*"
+torchvision = "*"
 
 [requires]
 python_version = "3.8"
