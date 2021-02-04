@@ -1,18 +1,16 @@
+import os
+import optuna
+
 # PyTorch stuff
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-import torch.utils.data
-from torchvision import datasets
-from torchvision import transforms
-import pandas as pd
-import os
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
 
-import optuna
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
+from torchvision.datasets import MNIST
+
 
 class NeuralNet(nn.ModuleList):
 	def __init__(self, trial):
@@ -77,13 +75,18 @@ class Model:
 	def prepare_data(self):
 
 		# Download and save MNIST as train & test loaders
-		self.train_loader = torch.utils.data.DataLoader(datasets.MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()),
-														batch_size=128,
-														shuffle=True)
+		self.train_loader = DataLoader(MNIST(os.getcwd(), 
+											train=True, 
+											download=True, 
+											transform=transforms.ToTensor()),
+										batch_size=128,
+										shuffle=True)
 
-		self.test_loader = torch.utils.data.DataLoader(datasets.MNIST(os.getcwd(), train=False, transform=transforms.ToTensor()),
-														batch_size=128,
-														shuffle=True)
+		self.test_loader = DataLoader(MNIST(os.getcwd(), 
+											train=False, 
+											transform=transforms.ToTensor()),
+										batch_size=128,
+										shuffle=True)
 
 
 	def optimize(self, trial):
