@@ -76,17 +76,17 @@ class Model:
 
 		# Download and save MNIST as train & test loaders
 		self.train_loader = DataLoader(MNIST(os.getcwd(), 
-								train=True, 
-								download=True, 
-								transform=transforms.ToTensor()),
-							batch_size=128,
-							shuffle=True)
+							train=True, 
+							download=True, 
+							transform=transforms.ToTensor()),
+						batch_size=128,
+						shuffle=True)
 
 		self.test_loader = DataLoader(MNIST(os.getcwd(), 
-								train=False, 
-								transform=transforms.ToTensor()),
-							batch_size=128,
-							shuffle=True)
+							train=False, 
+							transform=transforms.ToTensor()),
+						batch_size=128,
+						shuffle=True)
 
 
 	def optimize(self, trial):
