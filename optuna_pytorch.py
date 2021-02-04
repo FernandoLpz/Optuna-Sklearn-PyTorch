@@ -14,18 +14,6 @@ from sklearn.model_selection import train_test_split
 
 import optuna
 
-class DataHandler(Dataset):
-
-	def __init__(self, x, y):
-		self.x = x
-		self.y = y
-		
-	def __len__(self):
-		return len(self.x)
-		
-	def __getitem__(self, idx):
-		return self.x[idx], self.y[idx]
-
 class NeuralNet(nn.ModuleList):
 	def __init__(self, trial):
 		super(NeuralNet, self).__init__()
@@ -39,7 +27,7 @@ class NeuralNet(nn.ModuleList):
 		n_layers = trial.suggest_int('n_layers', 1, 4)
 		dropout = trial.suggest_uniform('dropout', 0.1, 0.5)
 
-		# Since the input tensor has a shape (n, 30)
+		# Since the input tensor has a shape (n, 28*28)
 		input_dim = 28 * 28
 
 		# Given the suggested number of layers, proceeds by
@@ -53,8 +41,7 @@ class NeuralNet(nn.ModuleList):
 
 			input_dim = output_dim
 
-		# The last layer is added to the stack. Sice we are working
-		# with binary classification, 1 output unit is enough
+		# The last layer is added to the stack.
 		self.layers.append(nn.Linear(input_dim, 10))
 		self.dropouts.append(nn.Dropout(0))
 
@@ -76,13 +63,10 @@ class NeuralNet(nn.ModuleList):
 			x = F.relu(x)
 			x = dropout(x)
 
-		# Last layer has sigmoid as 
-		# activation funciton
-		x = torch.sigmoid(x)
+		# Softmax activation function is 
+		# applied to the last layer
 		x = torch.log_softmax(x, dim=1)
-		# x = F.relu(x)
 
-		# return x.squeeze()
 		return x
 
 class Model:
@@ -91,31 +75,15 @@ class Model:
 		self.test_loader = None
 
 	def prepare_data(self):
-		# self.dataset = pd.read_csv('data/mushrooms.csv')
-		# columns_to_be_encoded = self.dataset.drop(['Class'], axis=1).columns
-		# x = pd.get_dummies(self.dataset.drop(['Class'], axis=1), columns=columns_to_be_encoded)
-		# classes = self.dataset['Class'].unique()
-		# for idx, class_name in enumerate(classes):
-		# 	self.dataset['Class'] = self.dataset['Class'].replace(class_name, idx)
-		# y = self.dataset['Class']
 
-		# x = x.values
-		# y = y.values
+		# Download and save MNIST as train & test loaders
+		self.train_loader = torch.utils.data.DataLoader(datasets.MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()),
+														batch_size=128,
+														shuffle=True)
 
-		# # Load data and split into train and test sets
-		# # x, y = load_breast_cancer(return_X_y=True)
-		# self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.30, random_state=12)
-
-		# MNIST
-		self.train_loader = torch.utils.data.DataLoader(
-		datasets.MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()),
-		batch_size=128,
-		shuffle=True)
-
-		self.test_loader = torch.utils.data.DataLoader(
-		datasets.MNIST(os.getcwd(), train=False, transform=transforms.ToTensor()),
-		batch_size=128,
-		shuffle=True)
+		self.test_loader = torch.utils.data.DataLoader(datasets.MNIST(os.getcwd(), train=False, transform=transforms.ToTensor()),
+														batch_size=128,
+														shuffle=True)
 
 
 	def optimize(self, trial):
@@ -128,28 +96,17 @@ class Model:
 		learning_rate = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
 		optimizer = getattr(optim, optimizer_name)(neural_net.parameters(), lr=learning_rate)
 
-		# # Initialize data handler
-		# train = DataHandler(self.x_train, self.y_train)
-		# test = DataHandler(self.x_test, self.y_test)
-
-		# # Initialize dataset loader
-		# self.train_loader = DataLoader(train, batch_size=batch_size)
-		# self.test_loader = DataLoader(test, batch_size=batch_size)
-
-
 		# Starts training phase
 		for epoch in range(10):
+			
 			# Set model in training model
 			neural_net.train()
 			
 			# Starts batch training
 			for x_batch, y_batch in self.train_loader:
-
-				# x_batch = x_batch.type(torch.FloatTensor)
-				# y_batch = y_batch.type(torch.FloatTensor)
+				
+				# Current batch is reshaped 
 				x_batch = x_batch.view(x_batch.size(0), -1)
-				# Clean gradientes
-				optimizer.zero_grad()
 				
 				# Feed the model
 				y_pred = neural_net(x_batch)
@@ -157,42 +114,45 @@ class Model:
 				# Loss calculation
 				loss = F.nll_loss(y_pred, y_batch)
 				
-				
 				# Gradients calculation
 				loss.backward()
 				
 				# Gradients update
 				optimizer.step()
+				
+				# Clean gradientes
+				optimizer.zero_grad()
 			
+			# Starts evaluation phase
 			neural_net.eval()
-			tp, fp = 0, 0
-			correct = 0
 			with torch.no_grad():
+				
+				# True positive & 
+				# False positive initialization
+				tp_fp = 0
+				
 				for x_batch, y_batch in self.test_loader:
-
-					# x_batch = x_batch.type(torch.FloatTensor)
-					# y_batch = y_batch.type(torch.FloatTensor)
+					
 					x_batch = x_batch.view(x_batch.size(0), -1)
 					y_pred = neural_net(x_batch)
 
 					pred = y_pred.argmax(dim=1, keepdim=True)
-					correct += pred.eq(y_batch.view_as(pred)).sum().item()
+					tp_fp += pred.eq(y_batch.view_as(pred)).sum().item()
 
-					# for pred, true in zip(y_pred, y_batch):
-					# 	if (pred >= 0.5) and (true == 1):
-					# 		tp += 1
-					# 	if (pred < 0.5) and (true == 0):
-					# 		fp += 1
-			accuracy = correct / len(self.test_loader.dataset)
-				# accuracy = (tp + fp) / len(self.y_test)
-	
+			accuracy = tp_fp / len(self.test_loader.dataset)
+
+		# Retun accuracy since we 
+		# want it to be maximized
 		return accuracy
 
 
 if __name__ == '__main__':
 
+	# Initialize the model and prepare data
 	model = Model()
 	model.prepare_data()
 	
+	# Define a study for "maximization"
 	study = optuna.create_study(direction="maximize")
+	# Starts optimization for 50 iterations
 	study.optimize(model.optimize, n_trials=50)
