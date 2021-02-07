@@ -158,4 +158,4 @@ if __name__ == '__main__':
     # Define a study for "maximization"
     study = optuna.create_study(direction="maximize")
     # Starts optimization for 50 iterations
-    study.optimize(model.optimize, n_trials=50)
+    study.optimize(model.optimize, n_trials=5)

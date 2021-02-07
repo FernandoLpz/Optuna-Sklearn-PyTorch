@@ -11,40 +11,40 @@ class ModelOptimization:
         self.x = x
         self.y = y
 
-    def optimize(self, trial):
+def optimize(self, trial):
+    
+    # Definition of space search
+    criterion = trial.suggest_categorical('criterion', ['gini', 'entropy'])
+    n_estimators = trial.suggest_int('n_estimators', 10, 100)
+    max_depth = trial.suggest_int('max_depth', 2, 10)
+
+    # Classifier definition
+    model = RandomForestClassifier(n_estimators=n_estimators,
+                                max_depth=max_depth,
+                                criterion=criterion)
+
+    avg_accuracy = []
+
+    # Definition of k-fold cross validation
+    k_fold = KFold(n_splits=5)
+
+    for train_idx, test_idx in k_fold.split(x, y):
         
-        # Definition of space search
-        criterion = trial.suggest_categorical('criterion', ['gini', 'entropy'])
-        n_estimators = trial.suggest_int('n_estimators', 10, 100)
-        max_depth = trial.suggest_int('max_depth', 2, 10)
-
-        # Classifier definition
-        model = RandomForestClassifier(n_estimators=n_estimators,
-                                    max_depth=max_depth,
-                                    criterion=criterion)
-
-        avg_accuracy = []
-
-        # Definition of k-fold cross validation
-        k_fold = KFold(n_splits=5)
-
-        for train_idx, test_idx in k_fold.split(x, y):
-            
-            # Training fold
-            x_train = x[train_idx]
-            y_train = y[train_idx]
-            
-            # Testing fold
-            x_test = x[test_idx]
-            y_test = y[test_idx]
-
-            # Training
-            model.fit(x_train, y_train)
-
-            # Save accuracy
-            avg_accuracy.append(model.score(x_test, y_test))
+        # Training fold
+        x_train = x[train_idx]
+        y_train = y[train_idx]
         
-        return np.mean(avg_accuracy)
+        # Testing fold
+        x_test = x[test_idx]
+        y_test = y[test_idx]
+
+        # Training
+        model.fit(x_train, y_train)
+
+        # Save accuracy
+        avg_accuracy.append(model.score(x_test, y_test))
+    
+    return np.mean(avg_accuracy)
     
     def train_optimal_configuration(self, best_params):
 
